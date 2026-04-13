@@ -6,7 +6,7 @@
 
 **Nom i cognoms:** Daniel Caravaca García
 
-**Data:** 13/04/26  **Grup:** DAM
+**Data:** 13/04/26  **Grup:** 2n DAM
 
 ---
 

@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../models/car_model.dart';
 
@@ -69,4 +71,41 @@ class CarHttpService {
       throw Exception('Error ${response.statusCode}: ${response.body}');
     }
   }
+  Future<List<CarsModel>> getCarsByFilter({
+  String? make,
+  String? model,
+}) async {
+
+  // fem un mapa buit nomes amb els parametres qeu tenen valor
+  final Map<String, String> queryParams = {};
+
+  // si make no es null ni buit ho afegim
+  if (make != null && make.isNotEmpty) queryParams['make'] = make;
+
+  // si model no es null ni buit ho afegim
+  if (model != null && model.isNotEmpty) queryParams['model'] = model;
+
+  // amb els parametres que tenim fem la uri
+  final uri = _buildUri('/v1/cars/search', queryParams);
+
+  try {
+    // la peticio igual que getCarsPage, amb 10s de timeout
+    final response = await http.get(uri, headers: _headers).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () => throw TimeoutException('Timeout de 10 segons.'),
+        );
+
+    // si funciona convertim el json en una llista
+    if (response.statusCode == 200) {
+      return CarsModel.listFromJsonString(response.body);
+    }
+    // si el server no respon, o tot i que respongui no funciona o si no hi ha conexió a internet
+    throw Exception('Error ${response.statusCode}');
+  } on TimeoutException catch (e) {
+    throw Exception('Timeout: ${e.message}');
+  } on SocketException {
+    throw Exception('Sense connexió a internet.');
+  }
+} //i crec que aquí ja es tanca bé
+
 }

@@ -252,8 +252,10 @@ Exemples vàlids:
 - `/v1/cars/search?make=BMW&model=X` → BMW amb "X" al model
 
 **Implementa** el mètode `getCarsByFilter` a la classe `CarHttpService` existent, seguint el mateix patrons que `getCarsPage`:
-```dart
-
+```
+He implementat el mètode, per valorar si funciona he utilitzat les següents url al buscador (com la anterior):
+http://localhost:8080/v1/cars/search?make=Toyota
+http://localhost:8080/v1/cars/search?make=BMW&model=X
 ```
 
 Requisits:

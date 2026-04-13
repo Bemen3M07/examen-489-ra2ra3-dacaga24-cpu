@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:m489_cars_camera/camera/views/car_detail_page.dart';
 import '../models/car_model.dart';
 
 /// Widget de presentació de la llista de cotxes.
@@ -50,6 +51,14 @@ class CarsList extends StatelessWidget {
             car.color,
             style: const TextStyle(color: Colors.blueGrey),
           ),
+           onTap: () { // per poder implementar el car_detail_page he
+            Navigator.push( //hagut de crear el onTap a la llista de cotxes
+            context,
+            MaterialPageRoute(
+              builder: (context) => CarDetailPage(car: car),
+            ),
+            );
+          },
         );
       },
     );

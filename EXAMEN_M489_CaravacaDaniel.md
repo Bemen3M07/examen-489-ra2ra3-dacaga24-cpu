@@ -2,13 +2,13 @@
 
 ## Programació de Dispositius Mòbils i Multimèdia
 
-**Unitats Formatives:** RA2 i RA3  
-**Curs:** 2n DAM · Videojocs  
-**Data:** ____________________  
-**Durada:** 2 hores  
+**Unitats Formatives:** RA2 i RA3
+**Curs:** 2n DAM · Videojocs
+**Data:** 13/04/26
+**Durada:** 2 hores
 
-**Alumne/a:** ________________________________________________  
-**Grup:** __________________________________________________  
+**Alumne/a:** Daniel Caravaca García
+**Grup:** DAM
 
 ---
 
@@ -42,7 +42,10 @@ Al projecte **Cars**, el widget `CarsPage` gestiona el número de pàgina actual
 **Resposta:**
 
 ```
-[Escriu la teva resposta aquí]
+setState() notifica a Flutter que l'estat ha canviat i cal tornar a executar build()
+La 1a crida activa _isLoading = true per mostrar el CircularProgressIndicator
+La 2a crida, un cop arriben les dades, actualitza _cars i desactiva _isLoading = false
+Amb una sola crida al final, l'usuari no veuria res durant la càrrega
 ```
 
 ---
@@ -56,7 +59,10 @@ Al projecte **Camera**, el widget `CameraScreen` utilitza un `CameraController` 
 **Resposta:**
 
 ```
-[Escriu la teva resposta aquí]
+dispose() s'executa automàticament quan el widget és eliminat de l'arbre
+Cal cridar _controller.dispose() per alliberar la càmera i la memòria.
+Si no es fa, la càmera es queda bloquejada
+Al codi actual de camera_screen.dart aquest mètode no està implementat, suposo que s'hauria d'afegir
 ```
 
 ---
@@ -70,7 +76,10 @@ Al projecte **Camera**, el widget `CameraScreen` utilitza un `CameraController` 
 **Resposta:**
 
 ```
-[Escriu la teva resposta aquí]
+initState() és sync i no pot ser async, per això es guarda el Future sense el await, es a dir que:
+_initializeControllerFuture = _controller.initialize()
+FutureBuilder escolta el Future i mostra un CircularProgressIndicator mentre que espera,
+i quan el Future es finalitza o s'acaba (ConnectionState.done) es mostra el CameraPreview(_controller)
 ```
 
 ---
@@ -84,11 +93,39 @@ Analitza el mètode `getCarsPage(int page, int limit)` de `car_http_service.dart
 Què passaria si el servidor de l'API trigués 60 segons a respondre? L'aplicació quedaria bloquejada per a l'usuari? Per què? Escriu com implementaries un *timeout* de 10 segons a la petició HTTP.
 
 **Resposta:**
+```
+Sense timeout, si el servidor triga 60s l'app es bloquejaria i l'usuari no podria fer res
+Cal afegir .timeout() i capturar TimeoutException amb try/catch.
+```
 
 ```dart
 // Escriu la modificació al getCarsPage aquí:
 Future<List<CarsModel>> getCarsPage(int page, int limit) async {
-  // ...
+  final offset = (page - 1) * limit;
+  // s'ha de fer pels paràmetres (que es salti els 5 primers) paràmetres ?limit=5&offset=5
+  final uri = _buildUri('/v1/cars', {'limit': '$limit', 'offset': '$offset'});
+  try {
+    //es fa la peticio al server de 10s, si triga mes error
+    final response = await http
+        .get(uri, headers: _headers)
+        .timeout(
+          const Duration(seconds: 10),
+          // Si passa el temps, llancem TimeoutException amb un missatge
+          onTimeout: () => throw TimeoutException('Timeout de 10 segons.'),
+        );
+    // si el servidor respon be, convertim el json a una llista
+    if (response.statusCode == 200) {
+      return CarsModel.listFromJsonString(response.body);
+    }
+    // pot ser que el servidor respongui pero doni error (en menys de 10s)
+    throw Exception('Error ${response.statusCode}');
+  } on TimeoutException catch (e) {
+    // mostrem error de timeout si no respon en menys de 10s
+    throw Exception('Timeout: ${e.message}');
+  } on SocketException {
+    // per si no hi ha conexió saber-ho
+    throw Exception('Sense connexió a internet.');
+  }
 }
 ```
 
@@ -103,7 +140,10 @@ Analitza el constructor `factory CarsModel.fromMapToCarObject(Map<String, dynami
 **Resposta:**
 
 ```
-[Escriu la teva resposta aquí]
+El codi actual fa: json['year'] as int
+hauria de fallar si rep "2021" com a String
+Una solució és utilitzar int.tryParse() que accepta tant int com String
+Si el parsing falla, l'operador ?? retorna 0 com a valor per defecte
 ```
 
 ---
@@ -113,7 +153,9 @@ Analitza el constructor `factory CarsModel.fromMapToCarObject(Map<String, dynami
 **Resposta:**
 
 ```
-[Escriu la teva resposta aquí]
+Perque es comprova només la lògica
+Els tests amb dades reals depenen d'una API externa que funcioni, si no funciona fallarà
+Així els tests són ràpids i funcionen sense connexió a internet, es poden fer moltes vegades sense dependre de la API
 ```
 
 ---
@@ -135,15 +177,48 @@ Imagina que volem crear una pantalla de detall per a cada cotxe del projecte Car
 // Escriu el teu codi aquí:
 
 class CarDetailPage extends StatelessWidget {
+  // El widget rep un objecte CarsModel amb totes les dades del cotxe
   final CarsModel car;
-
   const CarDetailPage({super.key, required this.car});
-
   @override
   Widget build(BuildContext context) {
-    // implementa aquí
-  }
-}
+    return Scaffold(
+      appBar: AppBar( //fem un appbar per donar els detalls del cotxe
+        title: const Text('Detall del Cotxe'),
+      ),
+      body: Padding( //dins del body definim el padding i fem un child Column per anar posant childrens
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          children: [
+            // format del nom i l'estil
+            Text(
+              '${car.make} ${car.model}',
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16), //un espai per si acas
+            Icon(
+              car.type == 'SUV'
+                  ? Icons.directions_car // si el cotxe es un suv ho mostra, sino mostra un altre
+                  : Icons.car_rental,
+              size: 64,
+            ),
+            const SizedBox(height: 16), //un espai per si acas
+            //al final posem el botó
+            ElevatedButton(
+              onPressed: () {//al fer click es mostra la info en un snackBar
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Cotxe seleccionat: ${car.make} ${car.model}',//que mostri el make i el model del cotxe
+                    ),
+                  ),
+                );
+              },
+              child: const Text('Seleccionar cotxe'), //el nom del boto
+              //... i aqui es va tancant tot
 ```
 
 ---
@@ -177,9 +252,8 @@ Exemples vàlids:
 - `/v1/cars/search?make=BMW&model=X` → BMW amb "X" al model
 
 **Implementa** el mètode `getCarsByFilter` a la classe `CarHttpService` existent, seguint el mateix patrons que `getCarsPage`:
-
 ```dart
-// Afegeix aquest mètode a car_http_service.dart:
+
 ```
 
 Requisits:
@@ -191,8 +265,42 @@ Requisits:
 **Resposta:**
 
 ```dart
-// Escriu aquí la teva implementació completa del mètode:
+Future<List<CarsModel>> getCarsByFilter({
+  String? make,
+  String? model,
+}) async {
 
+  // fem un mapa buit nomes amb els parametres qeu tenen valor
+  final Map<String, String> queryParams = {};
+
+  // si make no es null ni buit ho afegim
+  if (make != null && make.isNotEmpty) queryParams['make'] = make;
+
+  // si model no es null ni buit ho afegim
+  if (model != null && model.isNotEmpty) queryParams['model'] = model;
+
+  // amb els parametres que tenim fem la uri
+  final uri = _buildUri('/v1/cars/search', queryParams);
+
+  try {
+    // la peticio igual que getCarsPage, amb 10s de timeout
+    final response = await http.get(uri, headers: _headers).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () => throw TimeoutException('Timeout de 10 segons.'),
+        );
+
+    // si funciona convertim el json en una llista
+    if (response.statusCode == 200) {
+      return CarsModel.listFromJsonString(response.body);
+    }
+    // si el server no respon, o tot i que respongui no funciona o si no hi ha conexió a internet
+    throw Exception('Error ${response.statusCode}');
+  } on TimeoutException catch (e) {
+    throw Exception('Timeout: ${e.message}');
+  } on SocketException {
+    throw Exception('Sense connexió a internet.');
+  }
+} //i crec que aquí ja es tanca bé
 ```
 
 ---
